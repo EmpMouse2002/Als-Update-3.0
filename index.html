@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Al's Garage POS Pro V2 (Discord Ready)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://i.imgur.com/Yxr1urn.jpg') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+            padding-top: 20px;
+        }
+        header {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .order-details, .customer-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .order-details div, .customer-details div {
+            flex: 1 1 30%;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 16px;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+        }
+        .items-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .item {
+            background-color: #444;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        .item:hover {
+            transform: scale(1.1);
+        }
+        .item.selected {
+            background-color: #4CAF50;
+        }
+        .item-name {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .item-price {
+            font-size: 16px;
+        }
+        .total {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>Al's Garage POS</header>
+
+    <div class="customer-details">
+        <div>
+            <label for="customer-name">Customer Name:</label>
+            <input type="text" id="customer-name" placeholder="Enter Customer Name">
+        </div>
+        <div>
+            <label for="license-plate">License Plate:</label>
+            <input type="text" id="license-plate" placeholder="Enter License Plate">
+        </div>
+        <div>
+            <label for="vehicle">Vehicle Make/Model:</label>
+            <input type="text" id="vehicle" placeholder="Enter Make/Model">
+        </div>
+    </div>
+
+    <div class="order-details">
+        <div style="flex: 3;">
+            <label>Select Items:</label>
+            <div class="items-list" id="items-list"></div>
+        </div>
+
+        <div style="flex: 1;">
+            <div class="total">
+                <p>Price Charged: $<span id="total-price">0</span></p>
+            </div>
+            <button id="copy-order-btn">Copy Order</button>
+            <button id="undo-btn">Undo Last Item</button>
+            <button id="clear-btn">Clear All</button>
+            <button id="discount-btn">Apply 10% Discount</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const items = [
+        { name: 'Repair', price: 4000 }, 
+        { name: 'Respray', price: 4600 }, 
+        { name: 'Tire Replacement', price: 1080 }, 
+        { name: 'Clutch Replacement', price: 2450 }, 
+        { name: 'Air Filter', price: 1040 }, 
+        { name: 'Spark Plug', price: 330 }, 
+        { name: 'Suspension Parts', price: 2450 }, 
+        { name: 'Brakepad Replacement', price: 500 }, 
+        { name: 'Full Service', price: 22230 }, 
+        { name: 'I4 Engine', price: 30000 }, 
+        { name: 'V6 Engine', price: 45000 },
+        { name: 'V8 Engine', price: 100000 },
+        { name: 'V12 Engine', price: 500000 },
+        { name: 'Turbo', price: 35000 },
+        { name: 'EV Motor', price: 3380 }, 
+        { name: 'EV Coolant', price: 194 }, 
+        { name: 'AWD', price: 50000 },
+        { name: 'RWD', price: 50000 },
+        { name: 'FWD', price: 50000 },
+        { name: 'Slick Tyres', price: 12780 }, 
+        { name: 'Semi Slick Tyres', price: 12400 }, 
+        { name: 'Offroad Tyres', price: 12400 }, 
+        { name: 'Drift Kit', price: 100000 },
+        { name: 'Lighting Controller', price: 5000 },
+        { name: 'Stance Kit', price: 10000 }, 
+        { name: 'Engine Oil', price: 1300 }, 
+        { name: 'Vehicle Wheels', price: 12000 }, 
+        { name: 'Tyre Smoke', price: 5500 }, 
+        { name: 'Extra', price: 3000 },
+        { name: 'Cleaning', price: 500 },
+        { name: 'Performance Part', price: 25000 }, 
+        { name: 'Ceramic Break', price: 25000 },
+        { name: 'Cosmetic Part', price: 4600 },
+        { name: 'EV Battery', price: 9250 }
+    ];
+
+    const excludedDiscountItems = [
+        'Performance Part', 'Lighting Controller', 'I4 Engine', 'V6 Engine', 'V8 Engine', 'V12 Engine', 'Turbo',
+        'Ceramic Break', 'AWD', 'RWD', 'FWD', 'Slick Tyres', 'Semi Slick Tyres', 'Offroad Tyres',
+        'Drift Kit', 'Repair Kit', 'Cleaning Kit'
+    ];
+
+    let selectedItems = [];
+    let discountApplied = false;
+
+    const itemsList = document.getElementById('items-list');
+    const totalPriceElement = document.getElementById('total-price');
+    const discountButton = document.getElementById('discount-btn');
+
+    items.forEach((item, index) => {
+        const itemElement = document.createElement('div');
+        itemElement.classList.add('item');
+        itemElement.innerHTML = `<div class="item-name">${item.name}</div><div class="item-price">$${item.price}</div>`;
+        itemElement.onclick = () => addItem(item, itemElement);
+        itemsList.appendChild(itemElement);
+    });
+
+    function addItem(item, itemElement) {
+        let existing = selectedItems.find(i => i.name === item.name);
+        if (existing) {
+            existing.quantity++;
+        } else {
+            selectedItems.push({ name: item.name, quantity: 1 });
+        }
+        updateDisplay();
+    }
+
+    function updateDisplay() {
+        let total = 0;
+        itemsList.childNodes.forEach((el, idx) => {
+            const item = items[idx];
+            const selected = selectedItems.find(i => i.name === item.name);
+            if (selected) {
+                el.classList.add('selected');
+                el.innerHTML = `<div class="item-name">${item.name} x${selected.quantity}</div><div class="item-price">$${item.price}</div>`;
+                let price = item.price * selected.quantity;
+                if (discountApplied && !excludedDiscountItems.includes(item.name)) {
+                    price *= 0.9;
+                }
+                total += price;
+            } else {
+                el.classList.remove('selected');
+                el.innerHTML = `<div class="item-name">${item.name}</div><div class="item-price">$${item.price}</div>`;
+            }
+        });
+        total = Math.round(total);
+        totalPriceElement.innerText = total;
+    }
+
+    document.getElementById('undo-btn').onclick = () => {
+        if (selectedItems.length > 0) {
+            let last = selectedItems[selectedItems.length - 1];
+            last.quantity--;
+            if (last.quantity <= 0) selectedItems.pop();
+            updateDisplay();
+        }
+    };
+
+    document.getElementById('clear-btn').onclick = () => {
+        selectedItems = [];
+        discountApplied = false;
+        document.getElementById('customer-name').value = '';
+        document.getElementById('license-plate').value = '';
+        document.getElementById('vehicle').value = '';
+        discountButton.innerText = 'Apply 10% Discount';
+        updateDisplay();
+    };
+
+    discountButton.onclick = () => {
+        discountApplied = !discountApplied;
+        discountButton.innerText = discountApplied ? 'Remove 10% Discount' : 'Apply 10% Discount';
+        updateDisplay();
+    };
+
+    document.getElementById('copy-order-btn').onclick = () => {
+        const order = generateDiscordOrder();
+        navigator.clipboard.writeText(order).then(() => alert('Order copied for Discord!'));
+    };
+
+    function generateDiscordOrder() {
+        const customerName = document.getElementById('customer-name').value;
+        const license = document.getElementById('license-plate').value;
+        const vehicle = document.getElementById('vehicle').value;
+
+        const itemsText = selectedItems.map(i => `${i.name} X${i.quantity}`).join(', ');
+        const total = totalPriceElement.innerText;
+
+        return `
+\`\`\`
+Customer Name: ${customerName}
+Vehicle | Make/Model: ${vehicle}
+Plate: ${license}
+Upgrades Purchased: ${itemsText}
+Price Charged: $${total}
+SHOP: Al's Garage
+\`\`\`
+        `.trim();
+    }
+</script>
+
+</body>
+</html>
